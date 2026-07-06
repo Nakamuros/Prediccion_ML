@@ -5,7 +5,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.model_io import load_bundle, load_metrics
-from utils.patient_risk import build_risk_table, get_patient_detail
+from utils.patient_risk import build_risk_table, get_patient_detail, predict_new_patient
 from utils.ui_style import inject_css, resaltar_estado, styler_map
 from utils.labels import pretty_columns, pretty_feature_name
 from utils.interpretability_widget import render_feature_importance
@@ -31,6 +31,11 @@ bundle = _load_model()
 df_cancer = _load_patients()
 risk_table = build_risk_table(df_cancer, bundle)
 
+# Combina pacientes registrados manualmente en esta sesión
+if 'pacientes_nuevos' in st.session_state and st.session_state['pacientes_nuevos']:
+    df_nuevos = pd.DataFrame(st.session_state['pacientes_nuevos'])
+    risk_table = pd.concat([df_nuevos, risk_table], ignore_index=True)
+
 # ---------- DIÁLOGO DE DETALLE ----------
 @st.dialog("Detalle del paciente", width="large")
 def mostrar_detalle_paciente(patient_id, cancer_type, edad, genero, riesgo):
@@ -54,6 +59,108 @@ def mostrar_detalle_paciente(patient_id, cancer_type, edad, genero, riesgo):
     ])
     st.dataframe(df_detalle, width='stretch', hide_index=True)
 
+# ---------- DIÁLOGO: NUEVO PACIENTE ----------
+@st.dialog("Registrar nuevo paciente", width="large")
+def formulario_nuevo_paciente():
+    with st.form("form_nuevo_paciente"):
+        st.markdown("##### Datos generales")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            patient_id = st.text_input("ID Paciente", placeholder="Ej. NP0001")
+            edad = st.number_input("Edad", min_value=18, max_value=100, value=50)
+        with c2:
+            genero = st.selectbox("Género", ["Femenino", "Masculino"])
+            cancer_type = st.selectbox("Tipo de cáncer", sorted(df_cancer['Cancer_Type'].unique()))
+        with c3:
+            bmi = st.number_input("Índice de Masa Corporal (BMI)", min_value=10.0, max_value=50.0, value=25.0, step=0.1)
+            actividad_nivel = st.slider("Nivel de Actividad Física", 0, 10, 5)
+
+        st.divider()
+        st.markdown("##### Factores de estilo de vida (escala 0-10)")
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            smoking = st.slider("Tabaquismo", 0, 10, 0)
+            alcohol = st.slider("Consumo de Alcohol", 0, 10, 0)
+        with c5:
+            obesity = st.slider("Obesidad", 0, 10, 0)
+            actividad = st.slider("Actividad Física", 0, 10, 5)
+        with c6:
+            aire = st.slider("Contaminación del Aire", 0, 10, 0)
+            ocupacional = st.slider("Riesgos Ocupacionales", 0, 10, 0)
+
+        st.divider()
+        st.markdown("##### Dieta")
+        c7, c8, c9 = st.columns(3)
+        with c7:
+            carne_roja = st.slider("Consumo de Carne Roja", 0, 10, 0)
+        with c8:
+            procesados = st.slider("Dieta Procesada/Salada", 0, 10, 0)
+        with c9:
+            frutas_verduras = st.slider("Consumo de Frutas y Verduras", 0, 10, 5)
+
+        st.divider()
+        st.markdown("##### Antecedentes clínicos")
+        c10, c11, c12, c13 = st.columns(4)
+        with c10:
+            antecedentes = st.selectbox("Antecedentes Familiares", ["No", "Sí"])
+        with c11:
+            brca = st.selectbox("Mutación BRCA", ["No", "Sí"])
+        with c12:
+            h_pylori = st.selectbox("Infección H. Pylori", ["No", "Sí"])
+        with c13:
+            calcio = st.slider("Consumo de Calcio", 0, 10, 5)
+
+        enviado = st.form_submit_button("Predecir riesgo", width='stretch')
+
+    if enviado:
+        if not patient_id:
+            st.error("Por favor ingresa un ID de paciente.")
+            return
+
+        datos = {
+            'Patient_ID': patient_id,
+            'Cancer_Type': cancer_type,
+            'Age': edad,
+            'Gender': 1 if genero == "Masculino" else 0,
+            'Smoking': smoking,
+            'Alcohol_Use': alcohol,
+            'Obesity': obesity,
+            'Family_History': 1 if antecedentes == "Sí" else 0,
+            'Diet_Red_Meat': carne_roja,
+            'Diet_Salted_Processed': procesados,
+            'Fruit_Veg_Intake': frutas_verduras,
+            'Physical_Activity': actividad,
+            'Air_Pollution': aire,
+            'Occupational_Hazards': ocupacional,
+            'BRCA_Mutation': 1 if brca == "Sí" else 0,
+            'H_Pylori_Infection': 1 if h_pylori == "Sí" else 0,
+            'Calcium_Intake': calcio,
+            'BMI': bmi,
+            'Physical_Activity_Level': actividad_nivel,
+        }
+
+        resultado = predict_new_patient(bundle, datos)
+        riesgo = resultado["riesgo"]
+
+        color_riesgo = {"Alto": "🔴", "Medio": "🟡", "Bajo": "🟢"}.get(riesgo, "⚪")
+        st.success(f"Predicción completada para **{patient_id}**")
+        st.markdown(f"### {color_riesgo} Nivel de Riesgo Predicho: **{riesgo}**")
+
+        # Guarda en sesión para que aparezca en la tabla/tarjetas de esta sesión
+        if 'pacientes_nuevos' not in st.session_state:
+            st.session_state['pacientes_nuevos'] = []
+        st.session_state['pacientes_nuevos'].append({
+            'Patient_ID': patient_id,
+            'Cancer_Type': cancer_type,
+            'Age': edad,
+            'Gender': genero,
+            'Risk_Level_Predicho': riesgo,
+        })
+
+col_btn, _ = st.columns([1, 4])
+with col_btn:
+    if st.button("➕ Registrar nuevo paciente", width='stretch'):
+        formulario_nuevo_paciente()
 
 # ---------- PANEL DE FILTROS ----------
 with st.container(border=True):

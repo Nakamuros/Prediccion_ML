@@ -55,3 +55,17 @@ def get_patient_detail(df_cancer: pd.DataFrame, bundle: dict, patient_id: str) -
         if col not in excluir
     }
     return detalle
+
+def predict_new_patient(bundle: dict, datos: dict) -> dict:
+    """Recibe un dict con las variables crudas de un paciente nuevo
+    (antes de feature engineering), aplica el mismo pipeline que el
+    entrenamiento, y devuelve la predicción de riesgo.
+    """
+    df_nuevo = pd.DataFrame([datos])
+    df_feat, _ = engineer_health_features(df_nuevo, cancer_type_encoder=bundle['cancer_type_encoder'])
+    X = df_feat[FEATURE_COLS_CANCER]
+    pred_encoded = bundle['model'].predict(X)
+    riesgo = bundle['target_encoder'].inverse_transform(pred_encoded)[0]
+
+    riesgo_es = {"High": "Alto", "Medium": "Medio", "Low": "Bajo"}.get(riesgo, riesgo)
+    return {"riesgo": riesgo_es, "fila_completa": df_feat.iloc[0]}
