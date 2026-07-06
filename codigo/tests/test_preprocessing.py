@@ -63,7 +63,7 @@ def test_engineer_inventory_features_computes_derived_columns():
     assert list(result['Month']) == [1, 1]
     assert list(result['Projected_Stock_7d']) == [360, 260]
     assert list(result['Projected_Stock_14d']) == [220, 120]
-    assert list(result['Stock_Ratio']) == [500 / 300, 400 / 300]
+    assert list(result['Stock_Ratio']) == [round(500 / 300, 3), round(400 / 300, 3)]
     assert 'Stock_Lag1' not in result.columns  # decision: no lag features (matches Hito 3)
 
 

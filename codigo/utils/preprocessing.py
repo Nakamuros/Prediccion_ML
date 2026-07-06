@@ -63,7 +63,7 @@ def engineer_inventory_features(df_inv: pd.DataFrame, item_name_encoder: LabelEn
     df['Projected_Stock_7d'] = (df['Current_Stock'] - df['Avg_Usage_Per_Day'] * 7).clip(lower=0)
     df['Projected_Stock_14d'] = (df['Current_Stock'] - df['Avg_Usage_Per_Day'] * 14).clip(lower=0)
     df['Days_Until_Stockout'] = (df['Current_Stock'] / df['Avg_Usage_Per_Day']).round(2)
-    df['Stock_Ratio'] = df['Current_Stock'] / df['Min_Required']
+    df['Stock_Ratio'] = (df['Current_Stock'] / df['Min_Required']).round(3)
 
     if item_name_encoder is None:
         item_name_encoder = LabelEncoder()
