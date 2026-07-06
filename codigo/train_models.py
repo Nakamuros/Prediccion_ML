@@ -164,8 +164,8 @@ def train_stock_regressor(df_inventory_raw: pd.DataFrame, horizon: int):
 def main():
     MODELOS_DIR.mkdir(exist_ok=True)
 
-    df_cancer = pd.read_csv(REPO_ROOT / 'cancer-risk-factors.csv')
-    df_inv = pd.read_csv(REPO_ROOT / 'inventory_data.csv')
+    df_cancer = pd.read_csv(REPO_ROOT / 'datos' / 'cancer-risk-factors.csv')
+    df_inv = pd.read_csv(REPO_ROOT / 'datos' / 'inventory_data.csv')
 
     print("Entrenando clasificador de riesgo de pacientes...")
     model_risk, cancer_type_enc, target_enc, metrics_risk = train_risk_classifier(df_cancer)

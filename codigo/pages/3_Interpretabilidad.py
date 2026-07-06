@@ -1,32 +1,23 @@
 import sys
 from pathlib import Path
-
-import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.model_io import load_metrics
+from utils.ui_style import inject_css
+from utils.interpretability_widget import render_feature_importance
+
+inject_css()
 
 st.set_page_config(page_title="Interpretabilidad", layout="wide")
 st.title("Interpretabilidad — Importancia de Features")
 
 metrics = load_metrics()
 
-
-def _plot_importances(container, title, importances):
-    container.subheader(title)
-    if not importances:
-        container.info("El modelo ganador no expone feature_importances_.")
-        return
-    df_imp = pd.Series(importances).sort_values(ascending=True).tail(10).reset_index()
-    df_imp.columns = ['Feature', 'Importancia']
-    fig = px.bar(df_imp, x='Importancia', y='Feature', orientation='h')
-    container.plotly_chart(fig, use_container_width=True)
-
-
 col1, col2 = st.columns(2)
-_plot_importances(col1, "Frente de Salud — Riesgo de Pacientes",
-                   metrics['riesgo_paciente'].get('feature_importances'))
-_plot_importances(col2, "Frente Logístico — Stock 7 días",
-                   metrics['stock_7d'].get('feature_importances'))
+with col1:
+    st.subheader("Frente de Salud — Riesgo de Pacientes")
+    render_feature_importance(st, metrics['riesgo_paciente'].get('feature_importances'))
+with col2:
+    st.subheader("Frente Logístico — Stock 7 días")
+    render_feature_importance(st, metrics['stock_7d'].get('feature_importances'))

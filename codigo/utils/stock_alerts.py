@@ -28,6 +28,10 @@ def build_alert_table(df_inv: pd.DataFrame, bundle_7: dict, bundle_14: dict) -> 
     X = latest[FEATURE_COLS_INV]
     latest['Pred_7d'] = bundle_7['model'].predict(X)
     latest['Pred_14d'] = bundle_14['model'].predict(X)
+
+    latest['Pred_7d'] = bundle_7['model'].predict(X).clip(min=0)
+    latest['Pred_14d'] = bundle_14['model'].predict(X).clip(min=0)
+
     latest['Estado_7d'] = latest.apply(lambda r: semaforo(r['Pred_7d'], r['Min_Required']), axis=1)
     latest['Estado_14d'] = latest.apply(lambda r: semaforo(r['Pred_14d'], r['Min_Required']), axis=1)
 
