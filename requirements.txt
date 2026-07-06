@@ -1,0 +1,9 @@
+pandas==2.3.3
+numpy==2.2.6
+scikit-learn==1.7.0
+xgboost==3.1.2
+imbalanced-learn==0.14.1
+joblib==1.5.1
+streamlit==1.45.1
+plotly==6.1.2
+pytest==9.0.1

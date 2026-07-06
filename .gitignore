@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Modelos: regenerados por codigo/train_models.py, no se versionan
+modelos/*
+!modelos/.gitkeep
